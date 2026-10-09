@@ -17,6 +17,22 @@ var store={get:function(k,d){try{var v=JSON.parse(localStorage.getItem(k));retur
 function post(url,data){if(!url)return Promise.resolve(false);return fetch(url,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(data)}).then(function(r){return r.ok}).catch(function(){return false})}
 function toast(m){var t=$('#toast');if(!t)return;t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('show')},2200)}
 
+
+/* ---------- order sync to Google Sheet (shared with the admin panel) ---------- */
+function apiPost(d){return fetch(window.AA_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(d)}).then(function(r){return r.json()})}
+var flushing=false;
+function flushOutbox(){
+  if(!window.AA_API||flushing)return;var q=store.get('aa_outbox',[]);if(!q.length)return;flushing=true;
+  (function next(i){
+    if(i>=q.length){flushing=false;return}
+    apiPost({action:'add',order:q[i]}).then(function(j){
+      if(!j||!j.ok)throw 0;
+      store.set('aa_outbox',store.get('aa_outbox',[]).filter(function(x){return x.ref!==q[i].ref}));next(i+1)
+    }).catch(function(){flushing=false})
+  })(0);
+}
+function queueOrder(o){var q=store.get('aa_outbox',[]);q.push(o);store.set('aa_outbox',q);flushOutbox()}
+
 var ALL={};['veg','fruit'].forEach(function(c){(window.AA_PRODUCTS||{veg:[],fruit:[]})[c].forEach(function(r){ALL[r[0]]={id:r[0],name:r[1],price:r[2],unit:r[3],desc:r[4],aka:r[5],cat:c}})});
 var ov=store.get('aa_prod',{});Object.keys(ov).forEach(function(i){if(ALL[i]){if(ov[i].price>0)ALL[i].price=ov[i].price;ALL[i].off=!!ov[i].off}});
 var me=window.AAauth?AAauth.user():null;
@@ -72,7 +88,7 @@ function submitOrder(e){
   setErr('form',ok?'':'Please fix the highlighted fields.');if(!ok||!count())return;
   var o={email:me.email,ref:'AAH-'+Date.now().toString().slice(-7),ts:Date.now(),name:$('#cn').value.trim(),location:$('#cl').value.trim(),contact:$('#cc').value.trim(),payment:pm,proof:pm==='GCash'?f.name:'',
     items:ids().map(function(i){var p=ALL[i];return{name:p.name,unit:p.unit,price:p.price,qty:cart[i],subtotal:p.price*cart[i]}}),total:total(),status:pm==='GCash'?'Awaiting payment check':'Pending'};
-  var all=store.get('aa_orders',[]);all.unshift(o);store.set('aa_orders',all);post(C.orderEndpoint,o);
+  var all=store.get('aa_orders',[]);all.unshift(o);store.set('aa_orders',all);post(C.orderEndpoint,o);queueOrder(o);
   $('#dmsg').textContent='Thank you, '+o.name+'! Your '+pm+' order '+o.ref+' has been saved.';
   $('#dsum').innerHTML=summary();
   $('#dmail').href='mailto:'+C.email+'?subject='+encodeURIComponent('Order '+o.ref)+'&body='+encodeURIComponent(orderText(o));
@@ -135,5 +151,6 @@ function initFeedback(){
   $('#fagain').addEventListener('click',function(){$('#fthanks').hidden=true;form.hidden=false;$('#fn').focus()});
   if(me)$('#fn').value=me.name;listFeedback();
 }
+flushOutbox();
 if(page==='veg'||page==='fruit')initShop();else if(page==='orders')initOrders();else if(page==='feedback')initFeedback();
 })();

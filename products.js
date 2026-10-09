@@ -1,3 +1,7 @@
+/* ===== ORDER SYNC SETTINGS =====
+   Paste your Google Apps Script "Web app URL" between the quotes (see SETUP steps). */
+window.AA_API='';
+/* ================================ */
 /* [id, name, price (PHP), unit, description, search alias] — photo = assets/products/<id>.jpg */
 window.AA_PRODUCTS={
 veg:[
