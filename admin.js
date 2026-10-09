@@ -36,7 +36,7 @@ function syncBar(){
   if(state==='noapi')return'<div class="panel" style="margin-bottom:16px"><p><b>Order sync is not set up yet.</b> Only orders placed in this browser are shown. Add your Web app URL to <code>products.js</code> (<code>window.AA_API</code>).</p></div>';
   if(state==='nokey'||state==='err')return'<div class="panel" style="margin-bottom:16px">'+(state==='err'?'<p class="err" style="display:block;margin-bottom:8px">'+esc(errMsg)+'</p>':'')+'<div class="f" style="max-width:320px"><label for="akey">Admin key (from your Google Apps Script)</label><input id="akey" type="password" autocomplete="off" value=""></div><p style="margin-top:10px"><button class="btn-sm" type="button" data-act="connect">Connect</button></p></div>';
   if(state==='loading')return'<div class="panel" style="margin-bottom:16px"><p>Loading orders from all customers…</p></div>';
-  return'<div class="panel" style="margin-bottom:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Showing live orders from all customers.</span><span>'+btn+' <button class="rm" type="button" data-act="changekey">Change key</button></span></div>';
+  return'<div class="panel" style="margin-bottom:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Showing live orders from all customers.</span><span>'+btn+'</span></div>';
 }
 function ordersView(){
   var all=allOrders(),sales=all.filter(function(o){return o.status!=='Cancelled'}).reduce(function(s,o){return s+o.total},0),pend=all.filter(function(o){return o.status==='Pending'||o.status==='Awaiting payment check'}).length;
