@@ -10,7 +10,7 @@ var STAT=['Pending','Awaiting payment check','Payment verified','Preparing','Out
 var P=[];['veg','fruit'].forEach(function(c){window.AA_PRODUCTS[c].forEach(function(r){P.push({id:r[0],name:r[1],price:r[2],unit:r[3],cat:c})})});
 function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('show')},1800)}
 function stars(n){return'<span class="st" aria-label="'+n+' out of 5">'+'★'.repeat(n)+'<i>'+'★'.repeat(5-n)+'</i></span>'}
-var KEYK='aa_adminkey',ORD=null,state='idle',errMsg='';
+var KEYK='aa_adminkey',ORD=null,FB=null,CUST=null,state='idle',errMsg='';
 function adminKey(){return window.AA_KEY||get(KEYK,'')}
 function apiCall(method,d){
   var u=window.AA_API;
@@ -23,8 +23,24 @@ function loadRemote(){
   state='loading';draw();
   apiCall('GET').then(function(j){
     if(!j||!j.ok)throw new Error(j&&j.error==='bad key'?'Wrong admin key.':'The server did not accept the request.');
-    ORD=(j.orders||[]).sort(function(a,b){return b.ts-a.ts});state='ok';draw()
+    ORD=(j.orders||[]).sort(function(a,b){return b.ts-a.ts});state='ok';draw();loadFb();loadCust()
   }).catch(function(e){state='err';errMsg=e.message==='Failed to fetch'?'Could not reach the order server. Check your internet and the Web app URL in products.js.':e.message;draw()});
+}
+function loadFb(){
+  fetch(window.AA_API+'?action=feedbacklist&key='+encodeURIComponent(adminKey())).then(function(r){return r.json()}).then(function(j){if(j&&j.ok&&j.feedback){FB=j.feedback;if(tab==='feedback')draw()}}).catch(function(){})
+}
+function loadCust(){
+  fetch(window.AA_API+'?action=customerlist&key='+encodeURIComponent(adminKey())).then(function(r){return r.json()}).then(function(j){if(j&&j.ok&&j.customers){CUST=j.customers;if(tab==='customers')draw()}}).catch(function(){})
+}
+function allCust(){
+  var loc=AAauth.users().filter(function(u){return u.role!=='admin'});if(CUST===null)return loc;
+  var seen={};CUST.forEach(function(u){seen[String(u.email).toLowerCase()]=1});
+  return CUST.concat(loc.filter(function(u){return!seen[String(u.email).toLowerCase()]})).sort(function(a,b){return b.ts-a.ts});
+}
+function allFb(){
+  var loc=get('aa_feedback',[]);if(FB===null)return loc;
+  var seen={};FB.forEach(function(x){seen[x.ts+'|'+(x.email||'')]=1});
+  return FB.concat(loc.filter(function(x){return!seen[x.ts+'|'+(x.email||'')]})).sort(function(a,b){return b.ts-a.ts});
 }
 function allOrders(){
   var loc=get('aa_orders',[]);if(ORD===null)return loc;
@@ -32,7 +48,7 @@ function allOrders(){
   return ORD.concat(loc.filter(function(o){return!seen[o.ref]}));
 }
 function syncBar(){
-  var btn='<button class="btn-sm alt" type="button" data-act="refresh">Refresh orders</button>';
+  var btn='<button class="btn-sm alt" type="button" data-act="refresh">Refresh</button>';
   if(state==='noapi')return'<div class="panel" style="margin-bottom:16px"><p><b>Order sync is not set up yet.</b> Only orders placed in this browser are shown. Add your Web app URL to <code>products.js</code> (<code>window.AA_API</code>).</p></div>';
   if(state==='nokey'||state==='err')return'<div class="panel" style="margin-bottom:16px">'+(state==='err'?'<p class="err" style="display:block;margin-bottom:8px">'+esc(errMsg)+'</p>':'')+'<div class="f" style="max-width:320px"><label for="akey">Admin key (from your Google Apps Script)</label><input id="akey" type="password" autocomplete="off" value=""></div><p style="margin-top:10px"><button class="btn-sm" type="button" data-act="connect">Connect</button></p></div>';
   if(state==='loading')return'<div class="panel" style="margin-bottom:16px"><p>Loading orders from all customers…</p></div>';
@@ -54,13 +70,13 @@ function prodView(){
   +'</tbody></table></div><p style="margin-top:14px"><button class="btn-sm alt" type="button" data-reset>Reset all prices and availability</button></p>';
 }
 function fbView(){
-  var all=get('aa_feedback',[]),avg=all.length?(all.reduce(function(s,x){return s+x.rating},0)/all.length).toFixed(1):'—';
-  return'<div class="stats"><div class="panel"><small>Responses</small><b>'+all.length+'</b></div><div class="panel"><small>Average rating</small><b>'+avg+' / 5</b></div></div>'
+  var all=allFb(),avg=all.length?(all.reduce(function(s,x){return s+x.rating},0)/all.length).toFixed(1):'—';
+  return syncBar()+'<div class="stats"><div class="panel"><small>Responses</small><b>'+all.length+'</b></div><div class="panel"><small>Average rating</small><b>'+avg+' / 5</b></div></div>'
   +(all.length?'<div class="panel">'+all.map(function(x,i){return'<div class="fb">'+stars(x.rating)+' <small>'+esc(x.name||'Anonymous')+(x.email?' ('+esc(x.email)+')':'')+' · '+when(x.ts)+'</small>'+(x.comment?'<p><b>Comment:</b> '+esc(x.comment)+'</p>':'')+(x.suggestion?'<p><b>Suggestion:</b> '+esc(x.suggestion)+'</p>':'')+'<button class="rm" type="button" data-del-f="'+i+'">Delete</button></div>'}).join('')+'</div>':'<div class="panel"><p class="empty">No feedback yet.</p></div>');
 }
 function custView(){
-  var us=AAauth.users().filter(function(u){return u.role!=='admin'}),os=allOrders();
-  return us.length?'<div class="tblw"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Orders</th></tr></thead><tbody>'+us.map(function(u){return'<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'—')+'</td><td>'+when(u.ts)+'</td><td>'+os.filter(function(o){return o.email===u.email}).length+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="panel"><p class="empty">No customers have signed up yet.</p></div>';
+  var us=allCust(),os=allOrders();
+  return syncBar()+(us.length?'<div class="tblw"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Orders</th></tr></thead><tbody>'+us.map(function(u){return'<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'—')+'</td><td>'+when(u.ts)+'</td><td>'+os.filter(function(o){return String(o.email).toLowerCase()===String(u.email).toLowerCase()}).length+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="panel"><p class="empty">No customers have signed up yet.</p></div>');
 }
 var V={orders:ordersView,products:prodView,feedback:fbView,customers:custView};
 function draw(){
@@ -72,7 +88,7 @@ root.addEventListener('click',function(e){var b=e.target.closest('button');if(!b
   if(b.dataset.act==='changekey'){localStorage.removeItem(KEYK);ORD=null;state='nokey';draw()}
   if(b.dataset.act==='connect'){var k=($('#akey').value||'').trim();if(!k){toast('Enter the admin key.');return}set(KEYK,k);loadRemote()}
   if(b.dataset.delO&&confirm('Delete order '+b.dataset.delO+'?')){var rf=b.dataset.delO;set('aa_orders',get('aa_orders',[]).filter(function(o){return o.ref!==rf}));if(ORD)ORD=ORD.filter(function(o){return o.ref!==rf});draw();if(state==='ok')apiCall('POST',{action:'delete',ref:rf}).then(function(j){if(!j||!j.ok)throw 0}).catch(function(){toast('Deleted here, but the server could not be reached.')})}
-  if(b.dataset.delF!==undefined&&confirm('Delete this feedback?')){var f=get('aa_feedback',[]);f.splice(+b.dataset.delF,1);set('aa_feedback',f);draw()}
+  if(b.dataset.delF!==undefined&&confirm('Delete this feedback?')){var fx=allFb()[+b.dataset.delF];if(fx){set('aa_feedback',get('aa_feedback',[]).filter(function(x){return x.ts!==fx.ts}));if(FB)FB=FB.filter(function(x){return x.ts!==fx.ts});draw();if(state==='ok'&&fx.id)apiCall('POST',{action:'delfeedback',id:fx.id}).catch(function(){toast('Deleted here, but the server could not be reached.')})}}
   if(b.hasAttribute('data-reset')&&confirm('Reset every product to its original price and availability?')){localStorage.removeItem('aa_prod');draw();toast('Products reset.')}
 });
 root.addEventListener('change',function(e){var t=e.target;

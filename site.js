@@ -17,6 +17,7 @@ if(hh&&U&&U.role!=='admin')hh.insertAdjacentHTML('afterbegin','<div class="home-
 if(hh&&!U)hh.insertAdjacentHTML('afterbegin','<div class="home-auth"><a href="login.html">LOG IN</a><a class="solid" href="signup.html">SIGN UP</a></div>');
 document.body.insertAdjacentHTML('beforeend',h);
 
+var withApi=function(cb){if(window.AA_API){cb();return}var p=document.createElement('script');p.src='products.js';p.onload=cb;document.head.appendChild(p)};
 /* ---- customer order updates (home page, logged-in customers) ---- */
 var hc=document.querySelector('.hero.home')&&document.querySelector('.band .content');
 if(hc&&U&&U.role!=='admin'){
@@ -41,7 +42,16 @@ var sync=function(){
   }).catch(function(){});
 };
 paint();
-var ps=document.createElement('script');ps.src='products.js';ps.onload=function(){sync();setInterval(function(){if(!document.hidden)sync()},60000)};document.head.appendChild(ps);
+withApi(function(){sync();setInterval(function(){if(!document.hidden)sync()},60000)});
+}
+
+/* ---- send this customer's name/email/phone (no password) to the admin sheet, once ---- */
+if(U&&U.role!=='admin'){
+  var sc={};try{sc=JSON.parse(localStorage.getItem('aa_custsent'))||{}}catch(e){}
+  if(!sc[U.email]){withApi(function(){
+    fetch(window.AA_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'customer',cust:{email:U.email,name:U.name,phone:U.phone||'',ts:U.ts||Date.now()}})})
+    .then(function(r){return r.json()}).then(function(j){if(j&&j.ok){sc[U.email]=1;localStorage.setItem('aa_custsent',JSON.stringify(sc))}}).catch(function(){})
+  })}
 }
 var lo=document.getElementById('lo');if(lo)lo.addEventListener('click',function(e){e.preventDefault();localStorage.removeItem('aa_session');location.href='index.html'});
 var b=document.querySelector('.menu-btn'),m=document.getElementById('menu');
