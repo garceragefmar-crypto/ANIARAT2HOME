@@ -1,6 +1,6 @@
 /* ===== ORDER SYNC SETTINGS =====
    Paste your Google Apps Script "Web app URL" between the quotes (see SETUP steps). */
-window.AA_API='https://script.google.com/macros/s/AKfycbwvICHwhyl9CNEOvKiqxE4y-UVKASg2Fc3Jli3tOWLlasPK1Ngy2JiTFBmLTGZgW-So8g/exec';
+window.AA_API='https://script.google.com/macros/s/AKfycbynRG4rnH555eZQuHE832PhdM89YlGULF8NjRCOMKOngSqQGTkiRZvSWqyrJDanwCiL/exec';
 /* ================================ */
 /* [id, name, price (PHP), unit, description, search alias] — photo = assets/products/<id>.jpg */
 window.AA_PRODUCTS={
