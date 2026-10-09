@@ -11,7 +11,7 @@ var P=[];['veg','fruit'].forEach(function(c){window.AA_PRODUCTS[c].forEach(funct
 function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('show')},1800)}
 function stars(n){return'<span class="st" aria-label="'+n+' out of 5">'+'★'.repeat(n)+'<i>'+'★'.repeat(5-n)+'</i></span>'}
 var KEYK='aa_adminkey',ORD=null,state='idle',errMsg='';
-function adminKey(){return get(KEYK,'')}
+function adminKey(){return window.AA_KEY||get(KEYK,'')}
 function apiCall(method,d){
   var u=window.AA_API;
   if(method==='GET')return fetch(u+'?action=list&key='+encodeURIComponent(adminKey())).then(function(r){return r.json()});
