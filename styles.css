@@ -93,3 +93,9 @@ body.menu-open .menu-back{opacity:1;pointer-events:auto}
 
 .menu .auth span{font:800 1.15rem var(--body);color:#fff}
 .rows svg[fill=none]{fill:none}
+
+/* home page log in / sign up */
+.home-auth{position:absolute;top:clamp(14px,2.6vw,34px);left:clamp(16px,3.6vw,48px);z-index:5;display:flex;gap:10px;align-items:center}
+.home-auth a{font:800 clamp(.9rem,1.5vw,1.15rem) var(--body);text-decoration:none;color:var(--olive);background:#fff;border:2px solid var(--olive);border-radius:30px;padding:6px 18px}
+.home-auth a.solid{background:var(--olive);color:#fff}
+.home-auth a:hover{background:var(--sun);color:var(--green-dark);border-color:var(--sun)}
