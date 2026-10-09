@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log in – AniArat2Home</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=League+Spartan:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth.css"></head><body data-page="login">
+<a class="back" href="index.html">&larr; Home</a>
+<main class="card">
+  <img class="logo" src="assets/logo-circle.png" alt="AniArat2Home">
+  <h1>Log in</h1>
+  <p class="sub">Welcome back! Fresh produce is waiting.</p>
+  <form id="f" novalidate>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" required placeholder="you@example.com"></div>
+    <div class="field"><label for="pw">Password</label><div class="pw"><input id="pw" type="password" autocomplete="current-password" required><button type="button">Show</button></div></div>
+        <p class="msg" id="msg" role="alert"></p>
+    <button class="btn" type="submit">LOG IN</button>
+  </form>
+  <p class="switch">New to AniArat2Home? <a href="signup.html">Sign up</a></p>
+</main>
+<script src="auth.js"></script></body></html>

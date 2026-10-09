@@ -1,0 +1,31 @@
+:root{--green-dark:#0b4a12;--green:#2e7d1e;--leaf:#7fc12e;--sun:#e9c53a;--olive:#4a5e1f;--mint:#dcfcdc;
+--display:"Anton",Impact,sans-serif;--body:"League Spartan","Trebuchet MS",sans-serif}
+*{box-sizing:border-box;margin:0}
+body{font-family:var(--body);color:var(--green-dark);min-height:100vh;min-height:100svh;display:grid;place-items:center;padding:28px 16px;
+background:linear-gradient(rgba(255,255,255,.3),rgba(255,255,255,.3)),url("assets/field.jpg") center/cover fixed}
+a{color:var(--green-dark)}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.back{position:fixed;top:18px;left:22px;font-weight:800;text-decoration:none;color:var(--olive);background:rgba(255,255,255,.75);padding:6px 14px;border-radius:30px}
+.card{width:min(440px,100%);background:rgba(255,255,255,.88);backdrop-filter:blur(6px);border-radius:28px;padding:30px 32px 28px;
+box-shadow:0 14px 40px rgba(11,74,18,.25);border-top:8px solid var(--sun)}
+.card.wide{width:min(520px,100%)}
+.logo{width:110px;margin:-72px auto 8px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))}
+.card h1{font-family:var(--display);font-weight:400;text-transform:uppercase;text-align:center;font-size:2.6rem;line-height:1.1}
+.sub{text-align:center;font-weight:600;margin:4px 0 20px}
+.field{margin-bottom:14px}
+.field label{display:block;font-weight:800;margin-bottom:4px}
+.field input,.field select{width:100%;font:600 1.05rem var(--body);color:var(--green-dark);padding:11px 14px;border:2px solid #9bd56a;border-radius:12px;background:#fff}
+.field input:focus,.field select:focus{border-color:var(--green);outline:none;box-shadow:0 0 0 3px rgba(127,193,46,.35)}
+.pw{position:relative}
+.pw input{padding-right:70px}
+.pw button{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;font:800 .9rem var(--body);color:var(--olive);cursor:pointer;padding:6px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opts{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:.95rem;margin:2px 0 18px;gap:10px}
+.opts label{display:flex;gap:8px;align-items:center}
+.opts input{accent-color:var(--green);width:18px;height:18px}
+.btn{width:100%;border:0;cursor:pointer;background:var(--green-dark);color:#fff;font:800 1.2rem var(--body);padding:13px;border-radius:40px;box-shadow:0 5px 0 rgba(0,0,0,.18)}
+.btn:hover{background:var(--green)}
+.msg{min-height:1.3em;margin-bottom:8px;font-weight:800;color:#b3261e;text-align:center;font-size:.95rem}
+.switch{text-align:center;margin-top:18px;font-weight:600}
+.switch a{font-weight:800}
+@media (max-width:480px){.row{grid-template-columns:1fr}.card{padding:28px 20px 24px}}

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign up – AniArat2Home</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=League+Spartan:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth.css"></head><body data-page="signup">
+<a class="back" href="index.html">&larr; Home</a>
+<main class="card wide">
+  <img class="logo" src="assets/logo-circle.png" alt="AniArat2Home">
+  <h1>Sign up</h1>
+  <p class="sub">Create your account in a minute.</p>
+  <form id="f" novalidate>
+    <div class="field"><label for="name">Full name</label><input id="name" type="text" autocomplete="name" required></div>
+    <div class="row">
+      <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" autocomplete="tel" placeholder="+63 9XX XXX XXXX"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="pw">Password</label><div class="pw"><input id="pw" type="password" autocomplete="new-password" minlength="8" required><button type="button">Show</button></div></div>
+      <div class="field"><label for="pw2">Confirm password</label><div class="pw"><input id="pw2" type="password" autocomplete="new-password" required><button type="button">Show</button></div></div>
+    </div>
+    <div class="opts"><label><input id="terms" type="checkbox"> I agree to the terms and privacy policy</label></div>
+    <p class="msg" id="msg" role="alert"></p>
+    <button class="btn" type="submit">CREATE ACCOUNT</button>
+  </form>
+  <p class="switch">Already have an account? <a href="login.html">Log in</a></p>
+</main>
+<script src="auth.js"></script></body></html>
