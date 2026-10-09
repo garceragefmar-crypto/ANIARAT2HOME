@@ -15,6 +15,33 @@ h+='</ul>'+(U?'<div class="auth"><span>Hi, '+U.name.replace(/[<>&"]/g,'')+'</spa
 var hh=document.querySelector('.hero.home');
 if(hh&&!U)hh.insertAdjacentHTML('afterbegin','<div class="home-auth"><a href="login.html">LOG IN</a><a class="solid" href="signup.html">SIGN UP</a></div>');
 document.body.insertAdjacentHTML('beforeend',h);
+
+/* ---- customer order updates (home page, logged-in customers) ---- */
+var hc=document.querySelector('.hero.home')&&document.querySelector('.band .content');
+if(hc&&U&&U.role!=='admin'){
+var MSG={'Pending':'We received your order and will confirm it soon.','Awaiting payment check':'We are checking your GCash payment.','Payment verified':'Your payment is confirmed. Thank you!','Preparing':'Your fresh produce is being prepared.','Out for delivery':'Your order is on its way to you!','Delivered':'Delivered. Enjoy your fresh produce!','Cancelled':'This order was cancelled. Please contact us if you have questions.'};
+var gl=function(k){try{return JSON.parse(localStorage.getItem(k))||[]}catch(e){return[]}};
+var ex=function(t){return String(t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+hc.insertAdjacentHTML('beforeend','<section class="upd" id="aa-upd" aria-live="polite" hidden></section>');
+var paint=function(){
+  var box=document.getElementById('aa-upd'),os=gl('aa_orders').filter(function(o){return o.email===U.email}).sort(function(a,b){return b.ts-a.ts}).slice(0,3);
+  if(!os.length){box.hidden=true;return}
+  box.hidden=false;
+  box.innerHTML='<h2>Order updates</h2>'+os.map(function(o){var c=String(o.status).toLowerCase().replace(/[^a-z]+/g,'-');
+    return'<div class="u"><div class="t"><b>'+ex(o.ref)+'</b><span class="bd s-'+c+'">'+ex(o.status)+'</span></div><p>'+ex(MSG[o.status]||'Your order status was updated.')+'</p></div>'}).join('');
+};
+var sync=function(){
+  if(!window.AA_API)return;
+  fetch(window.AA_API+'?action=mine&email='+encodeURIComponent(U.email)).then(function(r){return r.json()}).then(function(j){
+    if(!j||!j.ok||!j.orders)return;
+    var all=gl('aa_orders'),ch=false;
+    j.orders.forEach(function(r){all.forEach(function(o){if(o.ref===r.ref&&r.status&&o.status!==r.status){o.status=r.status;ch=true}})});
+    if(ch){localStorage.setItem('aa_orders',JSON.stringify(all));paint()}
+  }).catch(function(){});
+};
+paint();
+var ps=document.createElement('script');ps.src='products.js';ps.onload=function(){sync();setInterval(function(){if(!document.hidden)sync()},60000)};document.head.appendChild(ps);
+}
 var lo=document.getElementById('lo');if(lo)lo.addEventListener('click',function(e){e.preventDefault();localStorage.removeItem('aa_session');location.href='index.html'});
 var b=document.querySelector('.menu-btn'),m=document.getElementById('menu');
 function set(o){document.body.classList.toggle('menu-open',o);b.setAttribute('aria-expanded',o);m.setAttribute('aria-hidden',!o);if(o)m.querySelector('.menu-x').focus();else b.focus()}
