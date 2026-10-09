@@ -88,7 +88,8 @@ body.menu-open .menu-back{opacity:1;pointer-events:auto}
 .rows{display:grid;gap:clamp(14px,2.4vw,28px)}
 .rows a,.rows div{display:flex;align-items:center;gap:clamp(12px,1.8vw,24px);font:700 clamp(1.1rem,2.7vw,2.1rem) var(--mont);color:var(--olive)}
 .rows a{text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px}
-.rows svg{width:clamp(44px,5vw,72px);height:clamp(44px,5vw,72px);flex:none;border-radius:50%;background:var(--olive);padding:22%;fill:#fff;stroke:#fff}
+.rows svg{width:clamp(44px,5vw,72px);height:clamp(44px,5vw,72px);flex:none;border-radius:50%;background:var(--olive);padding:clamp(10px,1.1vw,16px);fill:#fff;stroke:#fff}
 @media (max-width:640px){.contact .brand{width:92%}.swirl,.contact .swirl{width:52%}}
 
 .menu .auth span{font:800 1.15rem var(--body);color:#fff}
+.rows svg[fill=none]{fill:none}
