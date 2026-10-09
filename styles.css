@@ -113,3 +113,6 @@ body.menu-open .menu-back{opacity:1;pointer-events:auto}
 .upd .bd.s-preparing,.upd .bd.s-out-for-delivery{background:#7fc12e;color:#0b4a12}
 .upd .bd.s-cancelled{background:#c0392b;color:#fff}
 @media (max-width:640px){.upd{width:90%}}
+
+.upd h2{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.upd h2 a{font:800 .85rem var(--body);color:var(--green);text-decoration:underline}

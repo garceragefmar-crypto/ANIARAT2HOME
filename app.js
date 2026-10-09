@@ -74,7 +74,7 @@ function checkoutHTML(){
   +'<div class="f"><label for="pf">Proof of payment (screenshot or PDF)</label><input id="pf" type="file" accept="image/*,.pdf"><p class="err" id="e-pf"></p></div><label class="chk"><input id="pd" type="checkbox">I have paid via GCash</label><p class="err" id="e-pd"></p></div>'
   +'<p class="err" id="e-form" role="alert"></p><button class="btn-sm" type="submit" style="width:auto;padding:13px 34px">CONFIRM ORDER</button></form>'
   +'<div><h2>Order summary</h2><div id="co-sum" class="sum" style="margin-top:12px"></div></div></div></section>'
-  +'<section id="done" class="done" hidden aria-live="polite"><div class="panel"><h2>Order received!</h2><p id="dmsg" style="margin-top:8px;font-weight:700"></p><div id="dsum" class="sum"></div><div class="acts"><a id="dmail" class="btn-sm" href="#">EMAIL ORDER TO US</a><button id="dnew" class="btn-sm alt" type="button">START A NEW ORDER</button></div><p id="dnote" style="margin-top:12px;font-weight:600"></p></div></section>';
+  +'<section id="done" class="done" hidden aria-live="polite"><div class="panel"><h2>Order received!</h2><p id="dmsg" style="margin-top:8px;font-weight:700"></p><div id="dsum" class="sum"></div><div class="acts"><a class="btn-sm" href="orders.html">TRACK MY ORDER</a><a id="dmail" class="btn-sm alt" href="#">EMAIL ORDER TO US</a><button id="dnew" class="btn-sm alt" type="button">START A NEW ORDER</button></div><p id="dnote" style="margin-top:12px;font-weight:600"></p></div></section>';
 }
 function orderText(o){return'Order '+o.ref+'\nName: '+o.name+'\nDeliver to: '+o.location+'\nContact: '+o.contact+'\nPayment: '+o.payment+(o.proof?' (proof file: '+o.proof+')':'')+'\n\n'+o.items.map(function(x){return x.qty+' '+x.unit+' '+x.name+' - '+peso(x.subtotal)}).join('\n')+'\n\nTOTAL: '+peso(o.total)}
 function setErr(id,m){$('#e-'+id).textContent=m||'';return!m}
@@ -118,13 +118,74 @@ function initShop(){
   });
 }
 
-/* ---------- orders page ---------- */
+/* ---------- orders dashboard (customer) ---------- */
+var STEPS=['Order placed','Payment verified','Preparing','Out for delivery','Delivered'];
+var STEPIDX={'Pending':0,'Awaiting payment check':0,'Payment verified':1,'Preparing':2,'Out for delivery':3,'Delivered':4};
+var OMSG={'Pending':'We received your order and will confirm it soon.','Awaiting payment check':'We are checking your GCash payment.','Payment verified':'Your payment is confirmed. Thank you!','Preparing':'Your fresh produce is being prepared.','Out for delivery':'Your order is on its way to you!','Delivered':'Delivered. Enjoy your fresh produce!','Cancelled':'This order was cancelled. Please contact us if you have questions.'};
 function initOrders(){
   var box=$('#olist');
   if(!me){box.innerHTML='<div class="panel"><p class="empty">Please <a href="login.html?next=orders.html">log in</a> or <a href="signup.html">sign up</a> to see your orders.</p></div>';return}
-  var all=store.get('aa_orders',[]).filter(function(o){return o.email===me.email});
-  box.innerHTML=all.length?all.map(function(o){return'<article class="panel ord"><div class="h"><span>'+esc(o.ref)+'</span><span class="badge">'+esc(o.status)+'</span></div><small>'+when(o.ts)+' · '+esc(o.payment)+'</small><div class="sum" style="margin-top:8px">'+o.items.map(function(x){return'<div class="r"><span>'+esc(x.name)+' — '+x.qty+' '+esc(x.unit)+'</span><strong>'+peso(x.subtotal)+'</strong></div>'}).join('')+'<div class="tot"><span>TOTAL</span><b>'+peso(o.total)+'</b></div></div><p style="margin-top:8px;font-weight:600">Deliver to: '+esc(o.location)+'</p></article>'}).join(''):'<div class="panel"><p class="empty">No orders yet. <a href="shop.html">Start shopping</a></p></div>';
-  if(count())box.insertAdjacentHTML('afterbegin','<div class="note">You have '+count()+' item(s) in your basket ('+peso(total())+'). <a href="vegetables.html">Continue shopping</a> to place the order.</div>');
+  var flt='all',lastCheck=0,fresh={};
+  var mine=function(){return store.get('aa_orders',[]).filter(function(o){return o.email===me.email}).sort(function(a,b){return b.ts-a.ts})};
+  var isActive=function(o){return o.status!=='Delivered'&&o.status!=='Cancelled'};
+  var canCancel=function(o){return o.status==='Pending'||o.status==='Awaiting payment check'};
+  function markSeen(){var s={};mine().forEach(function(o){s[o.ref]=o.status});store.set('aa_seen',s)}
+  (function(){var s=store.get('aa_seen',{});mine().forEach(function(o){if(s[o.ref]&&s[o.ref]!==o.status)fresh[o.ref]=1})})();
+  function tracker(o){
+    if(o.status==='Cancelled')return'<div class="trk-x">This order was cancelled.</div>';
+    var n=STEPIDX[o.status]||0;
+    return'<ol class="trk" aria-label="Order progress">'+STEPS.map(function(s,k){return'<li class="'+(k<n?'done':k===n?'now':'')+'"><i>'+(k<n?'✓':k+1)+'</i><span>'+s+'</span></li>'}).join('')+'</ol>';
+  }
+  function card(o){
+    return'<article class="panel ord" data-ref="'+esc(o.ref)+'"><div class="h"><span>'+esc(o.ref)+(fresh[o.ref]?' <em class="newchip">NEW UPDATE</em>':'')+'</span><span class="badge s-'+esc(String(o.status).toLowerCase().replace(/[^a-z]+/g,'-'))+'">'+esc(o.status)+'</span></div>'
+    +'<small>'+when(o.ts)+' · '+esc(o.payment)+'</small>'+tracker(o)+'<p class="omsg">'+esc(OMSG[o.status]||'Your order status was updated.')+'</p>'
+    +'<details><summary>View items and delivery details</summary><div class="sum" style="margin-top:8px">'+o.items.map(function(x){return'<div class="r"><span>'+esc(x.name)+' — '+x.qty+' '+esc(x.unit)+'</span><strong>'+peso(x.subtotal)+'</strong></div>'}).join('')+'<div class="tot"><span>TOTAL</span><b>'+peso(o.total)+'</b></div></div><p style="margin-top:8px;font-weight:600">Deliver to: '+esc(o.location)+'<br>Contact: '+esc(o.contact)+'</p></details>'
+    +'<div class="oacts"><button class="btn-sm alt" type="button" data-oa="again" data-ref="'+esc(o.ref)+'">Order again</button><a class="btn-sm alt" href="mailto:'+esc(C.email)+'?subject='+encodeURIComponent('Question about order '+o.ref)+'">Contact us</a>'+(canCancel(o)?'<button class="rm" type="button" data-oa="cancel" data-ref="'+esc(o.ref)+'">Cancel order</button>':'')+'</div></article>';
+  }
+  function draw(){
+    var all=mine(),list=all.filter(function(o){return flt==='all'||(flt==='active'?isActive(o):flt==='delivered'?o.status==='Delivered':o.status==='Cancelled')});
+    var cnt=function(f){return all.filter(f).length};
+    var tabs=[['all','All'],['active','In progress'],['delivered','Delivered'],['cancelled','Cancelled']];
+    box.innerHTML='<div class="stats"><div class="panel"><small>Total orders</small><b>'+all.length+'</b></div><div class="panel"><small>In progress</small><b>'+cnt(isActive)+'</b></div><div class="panel"><small>Delivered</small><b>'+cnt(function(o){return o.status==='Delivered'})+'</b></div></div>'
+    +(count()?'<div class="note">You have '+count()+' item(s) in your basket ('+peso(total())+'). <a href="vegetables.html">Continue shopping</a> to place the order.</div>':'')
+    +'<div class="obar"><div class="tabs" role="tablist">'+tabs.map(function(t){return'<button type="button" data-oa="tab" data-f="'+t[0]+'"'+(t[0]===flt?' aria-current="page"':'')+'>'+t[1]+'</button>'}).join('')+'</div><div class="osync"><small id="olast"></small> <button class="btn-sm alt" type="button" data-oa="refresh" style="width:auto;margin:0;padding:8px 16px">Refresh</button></div></div>'
+    +(list.length?list.map(card).join(''):'<div class="panel"><p class="empty">'+(all.length?'No orders in this list.':'No orders yet.')+' <a href="vegetables.html">Start shopping</a></p></div>');
+    stamp();
+  }
+  function stamp(){var e=$('#olast');if(e&&lastCheck)e.textContent='Checked '+new Date(lastCheck).toLocaleTimeString('en-PH',{timeStyle:'short'})}
+  function sync(manual){
+    if(!window.AA_API){if(manual)toast('Live updates are not set up yet.');return}
+    fetch(window.AA_API+'?action=mine&email='+encodeURIComponent(me.email)).then(function(r){return r.json()}).then(function(j){
+      if(!j||!j.ok||!j.orders)throw 0;
+      var all=store.get('aa_orders',[]),changed=false;
+      j.orders.forEach(function(r){
+        var f=false;all.forEach(function(o){if(o.ref===r.ref){f=true;if(r.status&&o.status!==r.status){o.status=r.status;fresh[o.ref]=1;changed=true}}});
+        if(!f&&r.items&&r.total){r.email=me.email;all.push(r);changed=true}
+      });
+      lastCheck=Date.now();if(changed){store.set('aa_orders',all);draw();if(manual)toast('Your orders were updated.')}else{stamp();if(manual)toast('Everything is up to date.')}
+    }).catch(function(){if(manual)toast('Could not check for updates right now.')});
+  }
+  box.addEventListener('click',function(e){
+    var b=e.target.closest('[data-oa]');if(!b)return;var a=b.dataset.oa,ref=b.dataset.ref;
+    if(a==='tab'){flt=b.dataset.f;draw()}
+    if(a==='refresh')sync(true);
+    if(a==='again'){
+      var o=mine().filter(function(x){return x.ref===ref})[0],added=0,byName={};
+      Object.keys(ALL).forEach(function(i){byName[ALL[i].name]=i});
+      (o?o.items:[]).forEach(function(x){var id=byName[x.name];if(id&&!ALL[id].off){cart[id]=(cart[id]||0)+x.qty;added++}});
+      if(!added){toast('Those products are not available right now.');return}
+      store.set('aa_cart',cart);toast('Added to your basket.');setTimeout(function(){location.href='vegetables.html'},700);
+    }
+    if(a==='cancel'&&confirm('Cancel order '+ref+'?')){
+      b.disabled=true;
+      var done=function(){var all=store.get('aa_orders',[]);all.forEach(function(o){if(o.ref===ref)o.status='Cancelled'});store.set('aa_orders',all);toast('Order cancelled.');draw()};
+      var fallback=function(){b.disabled=false;toast('Could not cancel online. Please email us instead.');location.href='mailto:'+C.email+'?subject='+encodeURIComponent('Please cancel order '+ref)};
+      if(!window.AA_API){fallback();return}
+      apiPost({action:'cancel',ref:ref,email:me.email}).then(function(j){if(j&&j.ok)done();else fallback()}).catch(fallback);
+    }
+  });
+  draw();markSeen();sync(false);
+  setInterval(function(){if(!document.hidden)sync(false)},60000);
 }
 
 /* ---------- feedback page ---------- */

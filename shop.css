@@ -102,3 +102,29 @@ main.shopwrap{background:var(--mint);padding:clamp(18px,3vw,34px) clamp(14px,4vw
 .tbl td img{vertical-align:middle;border-radius:8px;object-fit:cover;margin-right:8px}
 .tbl input[type=number]{width:90px;font:700 1rem var(--body);padding:6px 8px;border:2px solid #9bd56a;border-radius:8px}
 .tbl input[type=checkbox]{width:20px;height:20px;accent-color:var(--green)}
+
+/* customer orders dashboard */
+.odash{max-width:900px!important}
+.obar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.osync{display:flex;gap:10px;align-items:center}.osync small{font:600 .85rem var(--body);color:#4d6a45}
+.odash .tabs{flex-wrap:wrap}
+.odash .tabs button{padding:7px 16px;font-size:.98rem}
+.trk{list-style:none;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:16px 0 8px;text-align:center;counter-reset:none}
+.trk li{position:relative;display:grid;justify-items:center;gap:6px;font:700 .8rem/1.2 var(--body);color:#7b8f72}
+.trk li::before{content:"";position:absolute;top:15px;right:50%;width:100%;height:4px;background:#d6e6c8;z-index:0}
+.trk li:first-child::before{display:none}
+.trk li.done::before,.trk li.now::before{background:var(--leaf)}
+.trk i{position:relative;z-index:1;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#e4efd9;color:#7b8f72;font:800 .95rem var(--body);font-style:normal}
+.trk li.done i{background:var(--leaf);color:#fff}
+.trk li.now i{background:var(--sun);color:var(--green-dark);box-shadow:0 0 0 4px rgba(233,197,58,.35)}
+.trk li.done,.trk li.now{color:var(--green-dark)}
+.trk-x{margin:14px 0 8px;background:#fbe6e3;color:#a33b27;border-radius:12px;padding:10px 14px;font:800 .95rem var(--body)}
+.omsg{font:700 1rem var(--body);margin:6px 0 10px;color:var(--green-dark)}
+.ord details{margin-top:6px}.ord summary{cursor:pointer;font:800 .95rem var(--body);color:var(--green)}
+.oacts{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.panel .oacts .btn-sm{width:auto;margin:0;padding:9px 18px}
+.newchip{font:800 .7rem var(--body);font-style:normal;background:#c0392b;color:#fff;border-radius:20px;padding:2px 9px;margin-left:6px;vertical-align:middle}
+.badge.s-delivered,.badge.s-payment-verified{background:#2e7d1e;color:#fff}
+.badge.s-preparing,.badge.s-out-for-delivery{background:var(--leaf)}
+.badge.s-cancelled{background:#c0392b;color:#fff}
+@media(max-width:520px){.trk li{font-size:.68rem}.trk i{width:28px;height:28px}.trk li::before{top:13px}}

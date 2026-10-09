@@ -13,6 +13,7 @@ L.forEach(function(l){h+='<li><a href="'+l[0]+'"'+(l[1]==='FEEDBACK'?' class="pl
 var U=null;try{var se=JSON.parse(localStorage.getItem('aa_session')),us=JSON.parse(localStorage.getItem('aa_users'))||[];U=us.filter(function(x){return x.email===se})[0]||null}catch(e){}
 h+='</ul>'+(U?'<div class="auth"><span>Hi, '+U.name.replace(/[<>&"]/g,'')+'</span>'+(U.role==='admin'?'<a href="admin.html">ADMIN PANEL</a>':'')+'<a href="#" id="lo">LOG OUT</a></div>':'')+'</aside>';
 var hh=document.querySelector('.hero.home');
+if(hh&&U&&U.role!=='admin')hh.insertAdjacentHTML('afterbegin','<div class="home-auth"><a class="solid" href="orders.html">MY ORDERS</a></div>');
 if(hh&&!U)hh.insertAdjacentHTML('afterbegin','<div class="home-auth"><a href="login.html">LOG IN</a><a class="solid" href="signup.html">SIGN UP</a></div>');
 document.body.insertAdjacentHTML('beforeend',h);
 
@@ -27,7 +28,7 @@ var paint=function(){
   var box=document.getElementById('aa-upd'),os=gl('aa_orders').filter(function(o){return o.email===U.email}).sort(function(a,b){return b.ts-a.ts}).slice(0,3);
   if(!os.length){box.hidden=true;return}
   box.hidden=false;
-  box.innerHTML='<h2>Order updates</h2>'+os.map(function(o){var c=String(o.status).toLowerCase().replace(/[^a-z]+/g,'-');
+  box.innerHTML='<h2>Order updates <a href="orders.html">View all orders &rsaquo;</a></h2>'+os.map(function(o){var c=String(o.status).toLowerCase().replace(/[^a-z]+/g,'-');
     return'<div class="u"><div class="t"><b>'+ex(o.ref)+'</b><span class="bd s-'+c+'">'+ex(o.status)+'</span></div><p>'+ex(MSG[o.status]||'Your order status was updated.')+'</p></div>'}).join('');
 };
 var sync=function(){
