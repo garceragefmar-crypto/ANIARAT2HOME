@@ -30,7 +30,7 @@ function loadFb(){
   fetch(window.AA_API+'?action=feedbacklist&key='+encodeURIComponent(adminKey())).then(function(r){return r.json()}).then(function(j){if(j&&j.ok&&j.feedback){FB=j.feedback;if(tab==='feedback')draw()}}).catch(function(){})
 }
 function loadCust(){
-  fetch(window.AA_API+'?action=customerlist&key='+encodeURIComponent(adminKey())).then(function(r){return r.json()}).then(function(j){if(j&&j.ok&&j.customers){CUST=j.customers;if(tab==='customers')draw()}}).catch(function(){})
+  fetch(window.AA_API+'?action=customerlist&key='+encodeURIComponent(adminKey())).then(function(r){return r.json()}).then(function(j){if(j&&j.ok&&j.customers){CUST=j.customers.map(fixCust);if(tab==='customers')draw()}}).catch(function(){})
 }
 function allCust(){
   var loc=AAauth.users().filter(function(u){return u.role!=='admin'});
@@ -46,15 +46,17 @@ function allFb(){
   var seen={};FB.forEach(function(x){seen[x.ts+'|'+(x.email||'')]=1});
   return FB.concat(loc.filter(function(x){return!seen[x.ts+'|'+(x.email||'')]})).sort(function(a,b){return b.ts-a.ts});
 }
-function fixOrder(o){
-  /* some old rows in the sheet have time / phone / name in the wrong columns: put them back */
-  var c=[o.ts,o.name,o.contact].map(function(x){return String(x==null?'':x).trim()});
-  var T=c.filter(function(x){return/^\d{12,14}$/.test(x)})[0],
-      P=c.filter(function(x){return/^(\+?63|0)?9\d{9}$/.test(x.replace(/[\s-]/g,''))&&!/^\d{12,14}$/.test(x)})[0],
-      N=c.filter(function(x){return x&&x!==T&&x!==P})[0];
-  if(T&&P&&N&&String(o.ts)!==T){o.ts=Number(T);o.contact=P;o.name=N}
+function fixSet(o,a,b,c){
+  /* old rows can have time / phone / name in the wrong columns: put them back */
+  var v=[o[a],o[b],o[c]].map(function(x){return String(x==null?'':x).trim()});
+  var T=v.filter(function(x){return/^\d{13}$/.test(x)})[0],
+      P=v.filter(function(x){return x!==T&&/^[\d\s+()-]{7,}$/.test(x)})[0],
+      N=v.filter(function(x){return x&&x!==T&&x!==P})[0];
+  if(T&&P&&N&&String(o.ts)!==T){o.ts=Number(T);o.phone=o.contact=P;o.name=N}
   return o;
 }
+function fixOrder(o){var x={ts:o.ts,name:o.name,contact:o.contact};fixSet(x,'ts','name','contact');o.ts=x.ts;o.name=x.name;o.contact=x.contact;return o}
+function fixCust(u){return fixSet(u,'ts','name','phone')}
 function allOrders(){
   var loc=get('aa_orders',[]);if(ORD===null)return loc;
   var seen={};ORD.forEach(function(o){seen[o.ref]=1});
