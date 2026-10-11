@@ -75,7 +75,7 @@ function ordersView(){
   return syncBar()+'<div class="stats"><div class="panel"><small>Total orders</small><b>'+all.length+'</b></div><div class="panel"><small>Waiting for action</small><b>'+pend+'</b></div><div class="panel"><small>Sales (not cancelled)</small><b>'+peso(sales)+'</b></div></div>'
   +'<div class="f" style="max-width:280px"><label for="flt">Show orders</label><select id="flt"><option value="">All</option>'+STAT.map(function(s){return'<option'+(s===flt?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
   +(list.length?list.map(function(o){return'<article class="panel ord"><div class="h"><span>'+esc(o.ref)+' · '+esc(o.name)+'</span><span class="badge">'+esc(o.status)+'</span></div><small>'+when(o.ts)+' · '+esc(o.email||'')+' · '+esc(o.contact)+'</small>'
-    +'<p style="margin:8px 0;font-weight:600">Deliver to: '+esc(o.location)+'<br>Payment: '+esc(o.payment)+(o.proof?' — proof file: '+esc(o.proof):'')+'</p><div class="sum">'+o.items.map(function(x){return'<div class="r"><span>'+esc(x.name)+' — '+x.qty+' '+esc(x.unit)+'</span><strong>'+peso(x.subtotal)+'</strong></div>'}).join('')+'<div class="tot"><span>TOTAL</span><b>'+peso(o.total)+'</b></div></div>'
+    +'<p style="margin:8px 0;font-weight:600">Deliver to: '+esc(o.location)+'<br>Payment: '+esc(o.payment)+(o.proof?' — proof file: '+esc(o.proof):'')+(o.proofId?' <button class="btn-sm" type="button" data-proof="'+esc(o.ref)+'" style="width:auto;margin:6px 0 0;padding:7px 16px">View payment proof</button>':(o.proof?' <small>(file name only — the image was not uploaded for this order)</small>':''))+'</p><div class="sum">'+o.items.map(function(x){return'<div class="r"><span>'+esc(x.name)+' — '+x.qty+' '+esc(x.unit)+'</span><strong>'+peso(x.subtotal)+'</strong></div>'}).join('')+'<div class="tot"><span>TOTAL</span><b>'+peso(o.total)+'</b></div></div>'
     +'<div class="acts2"><label class="sr" for="s'+o.ref+'">Status of '+esc(o.ref)+'</label><select id="s'+o.ref+'" data-st="'+esc(o.ref)+'">'+STAT.map(function(s){return'<option'+(s===o.status?' selected':'')+'>'+s+'</option>'}).join('')+'</select><button class="rm" type="button" data-del-o="'+esc(o.ref)+'">Delete order</button></div></article>'}).join(''):'<div class="panel"><p class="empty">No orders to show.</p></div>');
 }
 function prodView(){
@@ -97,7 +97,23 @@ var V={orders:ordersView,products:prodView,feedback:fbView,customers:custView};
 function draw(){
   root.innerHTML='<nav class="tabs" aria-label="Admin sections" style="margin-bottom:20px;flex-wrap:wrap">'+['orders','products','feedback','customers'].map(function(t){return'<button type="button" data-tab="'+t+'"'+(t===tab?' aria-current="page"':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</button>'}).join('')+'</nav>'+V[tab]();
 }
+function showProof(ref){
+  var ov=document.createElement('div');ov.className='pf-ov';
+  ov.innerHTML='<div class="pf-box"><button class="rm pf-x" type="button">Close</button><p class="pf-t">Loading payment proof for '+esc(ref)+'…</p></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){if(e.target===ov||(e.target.classList&&e.target.classList.contains('pf-x'))){ov.remove()}});
+  var t=ov.querySelector('.pf-t'),box=ov.querySelector('.pf-box');
+  fetch(window.AA_API+'?action=proof&ref='+encodeURIComponent(ref)+'&key='+encodeURIComponent(adminKey())).then(function(r){return r.json()}).then(function(j){
+    if(!j||!j.ok)throw 0;
+    var bin=atob(j.data),u8=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+    var url=URL.createObjectURL(new Blob([u8],{type:j.mime})),pdf=j.mime==='application/pdf';
+    t.textContent='Payment proof for '+ref;
+    if(!pdf)box.insertAdjacentHTML('beforeend','<img src="'+url+'" alt="Payment proof for '+esc(ref)+'">');
+    box.insertAdjacentHTML('beforeend','<p><a class="btn-sm" target="_blank" rel="noopener" href="'+url+'" download="proof-'+esc(ref)+(pdf?'.pdf':'.jpg')+'" style="display:inline-block;width:auto">'+(pdf?'Open / download PDF':'Download image')+'</a></p>');
+  }).catch(function(){t.textContent='Could not load the payment proof. Check your internet and the admin key, then try again.'});
+}
 root.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+  if(b.dataset.proof){showProof(b.dataset.proof);return}
   if(b.dataset.tab){tab=b.dataset.tab;draw()}
   if(b.dataset.act==='refresh')loadRemote();
   if(b.dataset.act==='changekey'){localStorage.removeItem(KEYK);ORD=null;state='nokey';draw()}

@@ -3,8 +3,8 @@
 /* ===== SETTINGS — edit these ===== */
 var C={
   email:'aniarat2home@gmail.com',
-  gcashName:'JUAN DELA CRUZ',      // sample only — match your real GCash QR (assets/gcash-qr.png)
-  gcashNumber:'09191234567',
+  gcashName:'ANIARAT2HOME',      // matches the QR in assets/gcash-qr.png
+  gcashNumber:'',                // optional: put your GCash number here, e.g. '09XXXXXXXXX'
   orderEndpoint:'',                // optional: URL that receives each order as JSON (e.g. a Formspree / Google Apps Script URL)
   feedbackEndpoint:''              // optional: URL that receives each feedback as JSON
 };
@@ -70,7 +70,7 @@ function checkoutHTML(){
   +'<div class="f"><label for="cc">Contact Number</label><input id="cc" type="tel" inputmode="tel" autocomplete="tel" placeholder="09XX XXX XXXX"><p class="err" id="e-cc"></p></div>'
   +'<div class="f"><label for="pm">Mode of Payment</label><select id="pm"><option value="">Select payment method</option><option>Cash on Delivery</option><option>GCash</option></select><p class="err" id="e-pm"></p></div>'
   +'<div id="cod" class="note" hidden>Pay in cash to our rider when your order arrives. Please prepare <b id="camt"></b>.</div>'
-  +'<div id="gcash" class="gcash" hidden><img src="assets/gcash-qr.png" alt="GCash payment QR code"><p>Send <b id="gamt"></b> to <b>'+esc(C.gcashName)+'</b><br>'+esc(C.gcashNumber)+'</p><p style="margin-top:12px"><a class="btn-sm" href="gcash://" id="og">OPEN GCASH</a></p><p class="hint">Scan the QR code in GCash, or tap the button on your phone. We check payments by hand, so keep your receipt.</p>'
+  +'<div id="gcash" class="gcash" hidden><img src="assets/gcash-qr.png" alt="GCash payment QR code"><p>Send <b id="gamt"></b> to <b>'+esc(C.gcashName)+'</b>'+(C.gcashNumber?'<br>'+esc(C.gcashNumber):'')+'</p><p style="margin-top:12px"><a class="btn-sm" href="gcash://" id="og">OPEN GCASH</a></p><p class="hint">Scan the QR code in GCash, or tap the button on your phone. We check payments by hand, so keep your receipt.</p>'
   +'<div class="f"><label for="pf">Proof of payment (screenshot or PDF)</label><input id="pf" type="file" accept="image/*,.pdf"><p class="err" id="e-pf"></p></div><label class="chk"><input id="pd" type="checkbox">I have paid via GCash</label><p class="err" id="e-pd"></p></div>'
   +'<p class="err" id="e-form" role="alert"></p><button class="btn-sm" type="submit" style="width:auto;padding:13px 34px">CONFIRM ORDER</button></form>'
   +'<div><h2>Order summary</h2><div id="co-sum" class="sum" style="margin-top:12px"></div></div></div></section>'
@@ -78,23 +78,35 @@ function checkoutHTML(){
 }
 function orderText(o){return'Order '+o.ref+'\nName: '+o.name+'\nDeliver to: '+o.location+'\nContact: '+o.contact+'\nPayment: '+o.payment+(o.proof?' (proof file: '+o.proof+')':'')+'\n\n'+o.items.map(function(x){return x.qty+' '+x.unit+' '+x.name+' - '+peso(x.subtotal)}).join('\n')+'\n\nTOTAL: '+peso(o.total)}
 function setErr(id,m){$('#e-'+id).textContent=m||'';return!m}
+function readProof(f){return new Promise(function(res){
+  if(!f)return res('');
+  var fr=new FileReader();fr.onerror=function(){res('')};
+  fr.onload=function(){
+    if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){res(fr.result);return}
+    var img=new Image();img.onerror=function(){res('')};
+    img.onload=function(){var s=Math.min(1,1100/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.72))};
+    img.src=fr.result};
+  fr.readAsDataURL(f)})}
+var placing=false;
 function submitOrder(e){
   e.preventDefault();if(!me){location.href='login.html?next='+location.pathname.split('/').pop();return}var pm=$('#pm').value,f=$('#pf').files[0],ok=true;
   ok=setErr('cn',$('#cn').value.trim()?'':'Please enter your name.')&&ok;
   ok=setErr('cl',$('#cl').value.trim()?'':'Please enter a delivery location.')&&ok;
   ok=setErr('cc',$('#cc').value.replace(/\D/g,'').length>=10?'':'Please enter a valid contact number.')&&ok;
   ok=setErr('pm',pm?'':'Please choose a payment method.')&&ok;
-  if(pm==='GCash'){ok=setErr('pf',f?(f.size>5242880?'File is too large (5 MB max).':''):'Please upload your proof of payment.')&&ok;ok=setErr('pd',$('#pd').checked?'':'Please confirm that you have paid via GCash.')&&ok}
-  setErr('form',ok?'':'Please fix the highlighted fields.');if(!ok||!count())return;
+  if(pm==='GCash'){ok=setErr('pf',f?(f.size>5242880?'File is too large (5 MB max).':((f.type==='application/pdf'||/\.pdf$/i.test(f.name))&&f.size>1500000?'This PDF is too large (1.5 MB max). Please upload a screenshot instead.':'')):'Please upload your proof of payment.')&&ok;ok=setErr('pd',$('#pd').checked?'':'Please confirm that you have paid via GCash.')&&ok}
+  setErr('form',ok?'':'Please fix the highlighted fields.');if(!ok||!count()||placing)return;placing=true;
   var o={email:me.email,ref:'AAH-'+Date.now().toString().slice(-7),ts:Date.now(),name:$('#cn').value.trim(),location:$('#cl').value.trim(),contact:$('#cc').value.trim(),payment:pm,proof:pm==='GCash'?f.name:'',
     items:ids().map(function(i){var p=ALL[i];return{name:p.name,unit:p.unit,price:p.price,qty:cart[i],subtotal:p.price*cart[i]}}),total:total(),status:pm==='GCash'?'Awaiting payment check':'Pending'};
-  var all=store.get('aa_orders',[]);all.unshift(o);store.set('aa_orders',all);post(C.orderEndpoint,o);queueOrder(o);
+  readProof(pm==='GCash'?f:null).then(function(pd){placing=false;
+  var all=store.get('aa_orders',[]);all.unshift(o);store.set('aa_orders',all);post(C.orderEndpoint,o);var q=JSON.parse(JSON.stringify(o));q.proofData=pd;try{queueOrder(q)}catch(err){delete q.proofData;queueOrder(q)}
   $('#dmsg').textContent='Thank you, '+o.name+'! Your '+pm+' order '+o.ref+' has been saved.';
   $('#dsum').innerHTML=summary();
   $('#dmail').href='mailto:'+C.email+'?subject='+encodeURIComponent('Order '+o.ref)+'&body='+encodeURIComponent(orderText(o));
-  $('#dnote').textContent=pm==='GCash'?'Please email this order and attach your GCash proof of payment so we can confirm it.':'Please email this order to us so we can prepare it. Pay cash when it arrives.';
+  $('#dnote').textContent=pm==='GCash'?'Your proof of payment was sent with your order. We will check it and update your order status. You can also email it to us if you like.':'Please email this order to us so we can prepare it. Pay cash when it arrives.';
   $('#co').hidden=true;$('#done').hidden=false;$('#done').scrollIntoView({behavior:'smooth'});
   cart={};store.set('aa_cart',cart);$('#cf').reset();prefill();payUI();render();
+  });
 }
 function prefill(){if(me){$('#cn').value=me.name;$('#cc').value=me.phone||''}}
 function payUI(){var v=$('#pm').value;$('#gcash').hidden=v!=='GCash';$('#cod').hidden=v!=='Cash on Delivery'}

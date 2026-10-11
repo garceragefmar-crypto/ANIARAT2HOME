@@ -61,7 +61,7 @@ main.shopwrap{background:var(--mint);padding:clamp(18px,3vw,34px) clamp(14px,4vw
 .err{min-height:1.2em;color:#b3261e;font:800 .9rem var(--body)}
 .note,.gcash{background:#eaf6df;border-radius:14px;padding:16px;margin-bottom:14px;font:600 1rem/1.4 var(--body)}
 .gcash{text-align:center}
-.gcash img{width:min(240px,70%);margin:0 auto 10px;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.gcash img{width:min(300px,85%);margin:0 auto 10px;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
 .gcash .f{text-align:left;margin-top:14px}
 .gcash .hint{font-size:.9rem;margin-top:10px}
 .chk{display:flex;gap:10px;align-items:center;font:800 1rem var(--body);text-align:left;margin-top:12px}
@@ -128,3 +128,10 @@ main.shopwrap{background:var(--mint);padding:clamp(18px,3vw,34px) clamp(14px,4vw
 .badge.s-preparing,.badge.s-out-for-delivery{background:var(--leaf)}
 .badge.s-cancelled{background:#c0392b;color:#fff}
 @media(max-width:520px){.trk li{font-size:.68rem}.trk i{width:28px;height:28px}.trk li::before{top:13px}}
+
+/* payment proof viewer (admin) */
+.pf-ov{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:1000;display:grid;place-items:center;padding:16px}
+.pf-box{background:#fff;border-radius:16px;padding:16px;width:min(720px,100%);max-height:100%;overflow:auto;text-align:center}
+.pf-box img{max-width:100%;max-height:68vh;display:block;margin:10px auto;border-radius:10px}
+.pf-box .pf-x{float:right;margin:0 0 8px 8px}
+.pf-t{font:800 1rem var(--body)}
