@@ -33,9 +33,11 @@ function loadCust(){
   fetch(window.AA_API+'?action=customerlist&key='+encodeURIComponent(adminKey())).then(function(r){return r.json()}).then(function(j){if(j&&j.ok&&j.customers){CUST=j.customers;if(tab==='customers')draw()}}).catch(function(){})
 }
 function allCust(){
-  var loc=AAauth.users().filter(function(u){return u.role!=='admin'});if(CUST===null)return loc;
-  var seen={};CUST.forEach(function(u){seen[String(u.email).toLowerCase()]=1});
-  return CUST.concat(loc.filter(function(u){return!seen[String(u.email).toLowerCase()]})).sort(function(a,b){return b.ts-a.ts});
+  var loc=AAauth.users().filter(function(u){return u.role!=='admin'});
+  var list=(CUST===null?loc:CUST.concat(loc)),seen={},out=[];
+  list.forEach(function(u){var k=String(u.email).toLowerCase();if(!seen[k]){seen[k]=1;out.push(u)}});
+  allOrders().forEach(function(o){var k=String(o.email||'').toLowerCase();if(k&&!seen[k]){seen[k]=1;out.push({name:o.name,email:o.email,phone:o.contact,ts:o.ts})}});
+  return out.sort(function(a,b){return b.ts-a.ts});
 }
 function allFb(){
   var loc=get('aa_feedback',[]);if(FB===null)return loc;

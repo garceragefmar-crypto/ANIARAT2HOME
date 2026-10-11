@@ -197,20 +197,45 @@ function listFeedback(){
   $('#favg').textContent=all.length?avg.toFixed(1)+' / 5 average from '+all.length+' submission'+(all.length>1?'s':''):'';
   box.innerHTML=all.map(function(x){return'<div class="fb">'+stars(x.rating)+' <small>'+esc(x.name||'Anonymous')+' · '+when(x.ts)+'</small>'+(x.comment?'<p><b>Comment:</b> '+esc(x.comment)+'</p>':'')+(x.suggestion?'<p><b>Suggestion:</b> '+esc(x.suggestion)+'</p>':'')+'</div>'}).join('');
 }
+var fbBusy=false;
+function flushFeedback(){
+  if(!window.AA_API)return Promise.resolve('noapi');
+  if(fbBusy)return Promise.resolve('busy');
+  var mail=me?me.email:'',sent=store.get('aa_fbsent',{});
+  var q=store.get('aa_feedback',[]).filter(function(x){return(x.email||'')===mail&&!sent[x.id||('FB-'+x.ts)]});
+  if(!q.length)return Promise.resolve('ok');
+  fbBusy=true;
+  return new Promise(function(res){
+    (function next(i){
+      if(i>=q.length){fbBusy=false;res('ok');return}
+      var x=q[i],id=x.id||('FB-'+x.ts);
+      apiPost({action:'feedback',fb:{id:id,ts:x.ts,email:x.email||'',name:x.name||'',rating:x.rating,comment:x.comment||'',suggestion:x.suggestion||''}}).then(function(j){
+        if(!j||!j.ok)throw 0;var s=store.get('aa_fbsent',{});s[id]=1;store.set('aa_fbsent',s);next(i+1)
+      }).catch(function(){fbBusy=false;res('fail')})
+    })(0);
+  });
+}
+function showFbStatus(s){
+  var t=$('#fthanks'),e=$('#fstat');
+  if(!e){e=document.createElement('p');e.id='fstat';e.style.cssText='margin:0 0 14px;font-weight:800';var h=t.querySelector('h2');h.parentNode.insertBefore(e,t.querySelector('.acts'))}
+  if(s==='ok'){e.style.color='#2e7d1e';e.textContent='✓ Your feedback was sent to our team.'}
+  else if(s==='busy'){e.textContent=''}
+  else{e.style.color='#c0392b';e.textContent='Your feedback is saved, but it could not reach our team yet. It will be sent again the next time you open this page.'}
+}
 function initFeedback(){
   var form=$('#ff');
   form.addEventListener('change',function(e){if(e.target.name==='rate'){$('#rt').textContent=LBL[+e.target.value];$('#e-rate').textContent=''}});
   form.addEventListener('submit',function(e){
     e.preventDefault();var r=form.querySelector('input[name=rate]:checked');
     if(!r){$('#e-rate').textContent='Please choose a star rating.';return}
-    var x={email:me?me.email:'',ts:Date.now(),rating:+r.value,name:$('#fn').value.trim(),comment:$('#fc').value.trim(),suggestion:$('#fs').value.trim()};
-    var all=store.get('aa_feedback',[]);all.unshift(x);store.set('aa_feedback',all);post(C.feedbackEndpoint,x);
+    var x={id:'FB-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),email:me?me.email:'',ts:Date.now(),rating:+r.value,name:$('#fn').value.trim(),comment:$('#fc').value.trim(),suggestion:$('#fs').value.trim()};
+    var all=store.get('aa_feedback',[]);all.unshift(x);store.set('aa_feedback',all);post(C.feedbackEndpoint,x);flushFeedback().then(showFbStatus);
     var body='Rating: '+x.rating+'/5\nName: '+(x.name||'Anonymous')+'\n\nComments:\n'+x.comment+'\n\nSuggestions:\n'+x.suggestion;
     $('#fmail').href='mailto:'+C.email+'?subject='+encodeURIComponent('Website feedback: '+x.rating+' stars')+'&body='+encodeURIComponent(body);
     form.reset();$('#rt').textContent='';form.hidden=true;$('#fthanks').hidden=false;listFeedback();$('#fthanks').scrollIntoView({behavior:'smooth'});
   });
   $('#fagain').addEventListener('click',function(){$('#fthanks').hidden=true;form.hidden=false;$('#fn').focus()});
-  if(me)$('#fn').value=me.name;listFeedback();
+  if(me)$('#fn').value=me.name;listFeedback();flushFeedback();
 }
 flushOutbox();
 if(page==='veg'||page==='fruit')initShop();else if(page==='orders')initOrders();else if(page==='feedback')initFeedback();
