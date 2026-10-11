@@ -86,7 +86,7 @@ function prodView(){
 }
 function fbView(){
   var all=allFb(),avg=all.length?(all.reduce(function(s,x){return s+x.rating},0)/all.length).toFixed(1):'—';
-  return syncBar()+'<div class="stats"><div class="panel"><small>Responses</small><b>'+all.length+'</b></div><div class="panel"><small>Average rating</small><b>'+avg+' / 5</b></div></div>'
+  return syncBar()+'<p style="margin-bottom:10px;font-weight:700">'+(FB===null?'Could not read feedback from the server yet. Press Refresh.':'Feedback saved on the server: '+FB.length)+'</p><div class="stats"><div class="panel"><small>Responses</small><b>'+all.length+'</b></div><div class="panel"><small>Average rating</small><b>'+avg+' / 5</b></div></div>'
   +(all.length?'<div class="panel">'+all.map(function(x,i){return'<div class="fb">'+stars(x.rating)+' <small>'+esc(x.name||'Anonymous')+(x.email?' ('+esc(x.email)+')':'')+' · '+when(x.ts)+'</small>'+(x.comment?'<p><b>Comment:</b> '+esc(x.comment)+'</p>':'')+(x.suggestion?'<p><b>Suggestion:</b> '+esc(x.suggestion)+'</p>':'')+'<button class="rm" type="button" data-del-f="'+i+'">Delete</button></div>'}).join('')+'</div>':'<div class="panel"><p class="empty">No feedback yet.</p></div>');
 }
 function custView(){
