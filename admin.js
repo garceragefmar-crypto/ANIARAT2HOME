@@ -23,7 +23,7 @@ function loadRemote(){
   state='loading';draw();
   apiCall('GET').then(function(j){
     if(!j||!j.ok)throw new Error(j&&j.error==='bad key'?'Wrong admin key.':'The server did not accept the request.');
-    ORD=(j.orders||[]).sort(function(a,b){return b.ts-a.ts});state='ok';draw();loadFb();loadCust()
+    ORD=(j.orders||[]).map(fixOrder).sort(function(a,b){return b.ts-a.ts});state='ok';draw();loadFb();loadCust()
   }).catch(function(e){state='err';errMsg=e.message==='Failed to fetch'?'Could not reach the order server. Check your internet and the Web app URL in products.js.':e.message;draw()});
 }
 function loadFb(){
@@ -36,13 +36,24 @@ function allCust(){
   var loc=AAauth.users().filter(function(u){return u.role!=='admin'});
   var list=(CUST===null?loc:CUST.concat(loc)),seen={},out=[];
   list.forEach(function(u){var k=String(u.email).toLowerCase();if(!seen[k]){seen[k]=1;out.push(u)}});
-  allOrders().forEach(function(o){var k=String(o.email||'').toLowerCase();if(k&&!seen[k]){seen[k]=1;out.push({name:o.name,email:o.email,phone:o.contact,ts:o.ts})}});
+  var first={};
+  allOrders().forEach(function(o){var k=String(o.email||'').toLowerCase();if(!k||seen[k])return;var x=first[k];if(!x)first[k]={name:o.name,email:o.email,phone:o.contact,ts:o.ts};else if(o.ts<x.ts)x.ts=o.ts});
+  Object.keys(first).forEach(function(k){out.push(first[k])});
   return out.sort(function(a,b){return b.ts-a.ts});
 }
 function allFb(){
   var loc=get('aa_feedback',[]);if(FB===null)return loc;
   var seen={};FB.forEach(function(x){seen[x.ts+'|'+(x.email||'')]=1});
   return FB.concat(loc.filter(function(x){return!seen[x.ts+'|'+(x.email||'')]})).sort(function(a,b){return b.ts-a.ts});
+}
+function fixOrder(o){
+  /* some old rows in the sheet have time / phone / name in the wrong columns: put them back */
+  var c=[o.ts,o.name,o.contact].map(function(x){return String(x==null?'':x).trim()});
+  var T=c.filter(function(x){return/^\d{12,14}$/.test(x)})[0],
+      P=c.filter(function(x){return/^(\+?63|0)?9\d{9}$/.test(x.replace(/[\s-]/g,''))&&!/^\d{12,14}$/.test(x)})[0],
+      N=c.filter(function(x){return x&&x!==T&&x!==P})[0];
+  if(T&&P&&N&&String(o.ts)!==T){o.ts=Number(T);o.contact=P;o.name=N}
+  return o;
 }
 function allOrders(){
   var loc=get('aa_orders',[]);if(ORD===null)return loc;
