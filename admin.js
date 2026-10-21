@@ -10,7 +10,7 @@ var STAT=['Pending','Awaiting payment check','Payment verified','Preparing','Out
 var P=[];['veg','fruit'].forEach(function(c){window.AA_PRODUCTS[c].forEach(function(r){P.push({id:r[0],name:r[1],price:r[2],unit:r[3],cat:c})})});
 function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('show')},1800)}
 function stars(n){return'<span class="st" aria-label="'+n+' out of 5">'+'★'.repeat(n)+'<i>'+'★'.repeat(5-n)+'</i></span>'}
-var KEYK='aa_adminkey',ORD=null,FB=null,CUST=null,state='idle',errMsg='';
+var KEYK='aa_adminkey',ORD=null,FB=null,CUST=null,MSG=null,selMail='',state='idle',errMsg='';
 function adminKey(){return window.AA_KEY||get(KEYK,'')}
 function apiCall(method,d){
   var u=window.AA_API;
@@ -23,7 +23,7 @@ function loadRemote(){
   state='loading';draw();
   apiCall('GET').then(function(j){
     if(!j||!j.ok)throw new Error(j&&j.error==='bad key'?'Wrong admin key.':'The server did not accept the request.');
-    ORD=(j.orders||[]).map(fixOrder).sort(function(a,b){return b.ts-a.ts});state='ok';draw();loadFb();loadCust()
+    ORD=(j.orders||[]).map(fixOrder).sort(function(a,b){return b.ts-a.ts});state='ok';draw();loadFb();loadCust();loadMsgs()
   }).catch(function(e){state='err';errMsg=e.message==='Failed to fetch'?'Could not reach the order server. Check your internet and the Web app URL in products.js.':e.message;draw()});
 }
 function loadFb(){
@@ -93,9 +93,46 @@ function custView(){
   var us=allCust(),os=allOrders();
   return syncBar()+(us.length?'<div class="tblw"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Orders</th></tr></thead><tbody>'+us.map(function(u){return'<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'—')+'</td><td>'+when(u.ts)+'</td><td>'+os.filter(function(o){return String(o.email).toLowerCase()===String(u.email).toLowerCase()}).length+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="panel"><p class="empty">No customers have signed up yet.</p></div>');
 }
-var V={orders:ordersView,products:prodView,feedback:fbView,customers:custView};
+var V={orders:ordersView,products:prodView,feedback:fbView,customers:custView,messages:msgView};
+var QUICK=['Thank you for your order! We are preparing it now.','Your payment was verified. Thank you!','Your order is out for delivery.','Sorry about that. We will check it and get back to you shortly.','Please send your order number so we can help.'];
+function loadMsgs(){
+  if(!window.AA_API||!adminKey())return;
+  fetch(window.AA_API+'?action=supportlist&key='+encodeURIComponent(adminKey())).then(function(r){return r.json()}).then(function(j){
+    if(j&&j.ok&&j.messages){MSG=j.messages;if(tab==='messages')paintMsgs();else badge()}
+  }).catch(function(){});
+}
+function convs(){
+  var by={};(MSG||[]).forEach(function(m){var k=String(m.email).toLowerCase();var c=by[k]=by[k]||{email:m.email,name:'',msgs:[]};c.msgs.push(m);if(m.from==='customer'&&m.name)c.name=m.name});
+  return Object.keys(by).map(function(k){var c=by[k];c.msgs.sort(function(a,b){return a.ts-b.ts});c.last=c.msgs[c.msgs.length-1];
+    var real=c.msgs.filter(function(m){return m.from!=='bot'}),lr=real[real.length-1];c.needs=!!lr&&lr.from==='customer';if(!c.name)c.name=c.email;return c})
+    .sort(function(a,b){return b.last.ts-a.last.ts});
+}
+function needCount(){return convs().filter(function(c){return c.needs}).length}
+function badge(){var b=root.querySelector('[data-tab="messages"]');if(b){var n=needCount();b.textContent='Messages'+(n?' ('+n+')':'')}}
+function msgView(){
+  return syncBar()+'<div class="chat"><aside class="chat-list" id="chl" aria-label="Conversations"></aside><section class="chat-win"><header class="chat-h" id="chh"></header><div class="chat-msgs" id="chm" aria-live="polite"></div><div class="chat-quick" id="chq"></div><form class="chat-form" id="chf"><textarea id="cht" maxlength="1000" rows="2" placeholder="Type your reply… (Enter to send)" aria-label="Reply"></textarea><button class="btn-sm" type="submit">Send</button></form></section></div>';
+}
+function paintMsgs(force){
+  var l=$('#chl');if(!l)return;
+  var h=$('#chh'),m=$('#chm'),q=$('#chq'),f=$('#chf');
+  if(MSG===null){l.innerHTML='<p class="empty" style="padding:14px">Messages could not be loaded yet. Press Refresh.</p>';h.textContent='';m.innerHTML='';q.hidden=true;f.hidden=true;return}
+  var cs=convs();
+  if(!selMail&&cs.length)selMail=cs[0].email;
+  var same=function(a,b){return String(a).toLowerCase()===String(b).toLowerCase()};
+  l.innerHTML=cs.length?cs.map(function(c){var t=c.last.text;return'<button type="button" class="cl'+(same(c.email,selMail)?' on':'')+(c.needs?' new':'')+'" data-conv="'+esc(c.email)+'"><b>'+esc(c.name)+'</b><span>'+esc(t.length>46?t.slice(0,46)+'…':t)+'</span><small>'+when(c.last.ts)+'</small></button>'}).join(''):'<p class="empty" style="padding:14px">No messages from customers yet.</p>';
+  var c=cs.filter(function(x){return same(x.email,selMail)})[0];
+  if(!c){h.textContent='Select a conversation';m.innerHTML='';q.hidden=true;f.hidden=true;badge();return}
+  q.hidden=false;f.hidden=false;
+  h.innerHTML='<div><b>'+esc(c.name)+'</b><small>'+esc(c.email)+'</small></div><button class="rm" type="button" data-act="delchat" data-email="'+esc(c.email)+'">Delete chat</button>';
+  var near=m.scrollHeight-m.scrollTop-m.clientHeight<80;
+  m.innerHTML=c.msgs.map(function(x){var cls=x.from==='customer'?'in':(x.from==='admin'?'out':'bot');return'<div class="cm '+cls+'"><p>'+esc(x.text)+'</p><small>'+(x.from==='bot'?'Auto-reply · ':x.from==='admin'?'You · ':'')+when(x.ts)+'</small></div>'}).join('');
+  if(force||near)m.scrollTop=m.scrollHeight;
+  q.innerHTML=QUICK.map(function(t,i){return'<button type="button" data-quick="'+i+'">'+esc(t)+'</button>'}).join('');
+  badge();
+}
 function draw(){
-  root.innerHTML='<nav class="tabs" aria-label="Admin sections" style="margin-bottom:20px;flex-wrap:wrap">'+['orders','products','feedback','customers'].map(function(t){return'<button type="button" data-tab="'+t+'"'+(t===tab?' aria-current="page"':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</button>'}).join('')+'</nav>'+V[tab]();
+  root.innerHTML='<nav class="tabs" aria-label="Admin sections" style="margin-bottom:20px;flex-wrap:wrap">'+['orders','products','feedback','customers','messages'].map(function(t){return'<button type="button" data-tab="'+t+'"'+(t===tab?' aria-current="page"':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+(t==='messages'&&MSG&&needCount()?' ('+needCount()+')':'')+'</button>'}).join('')+'</nav>'+V[tab]();
+  if(tab==='messages')paintMsgs(true);
 }
 function showProof(ref){
   var ov=document.createElement('div');ov.className='pf-ov';
@@ -114,6 +151,9 @@ function showProof(ref){
 }
 root.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
   if(b.dataset.proof){showProof(b.dataset.proof);return}
+  if(b.dataset.conv!==undefined){selMail=b.dataset.conv;paintMsgs(true);return}
+  if(b.dataset.quick!==undefined){var qt=$('#cht');qt.value=QUICK[+b.dataset.quick];qt.focus();return}
+  if(b.dataset.act==='delchat'&&confirm('Delete this whole conversation?')){var em=b.dataset.email;apiCall('POST',{action:'supportdelete',email:em}).then(function(j){if(j&&j.ok){MSG=MSG.filter(function(x){return String(x.email).toLowerCase()!==String(em).toLowerCase()});selMail='';paintMsgs(true);toast('Conversation deleted.')}else toast('Could not delete.')}).catch(function(){toast('Could not delete.')});return}
   if(b.dataset.tab){tab=b.dataset.tab;draw()}
   if(b.dataset.act==='refresh')loadRemote();
   if(b.dataset.act==='changekey'){localStorage.removeItem(KEYK);ORD=null;state='nokey';draw()}
@@ -122,6 +162,16 @@ root.addEventListener('click',function(e){var b=e.target.closest('button');if(!b
   if(b.dataset.delF!==undefined&&confirm('Delete this feedback?')){var fx=allFb()[+b.dataset.delF];if(fx){set('aa_feedback',get('aa_feedback',[]).filter(function(x){return x.ts!==fx.ts}));if(FB)FB=FB.filter(function(x){return x.ts!==fx.ts});draw();if(state==='ok'&&fx.id)apiCall('POST',{action:'delfeedback',id:fx.id}).catch(function(){toast('Deleted here, but the server could not be reached.')})}}
   if(b.hasAttribute('data-reset')&&confirm('Reset every product to its original price and availability?')){localStorage.removeItem('aa_prod');draw();toast('Products reset.')}
 });
+root.addEventListener('submit',function(e){
+  if(e.target.id!=='chf')return;e.preventDefault();
+  var ta=$('#cht'),text=ta.value.trim();if(!text||!selMail)return;
+  var c=convs().filter(function(x){return String(x.email).toLowerCase()===String(selMail).toLowerCase()})[0],bt=e.target.querySelector('button[type=submit]');bt.disabled=true;
+  apiCall('POST',{action:'supportreply',email:selMail,name:c?c.name:'',text:text}).then(function(j){
+    if(!j||!j.ok)throw 0;MSG.push({id:'AM-'+Date.now(),ts:Date.now(),email:selMail,name:c?c.name:'',from:'admin',text:text});ta.value='';paintMsgs(true)
+  }).catch(function(){toast('Could not send. Check your internet and the admin key.')}).then(function(){bt.disabled=false});
+});
+root.addEventListener('keydown',function(e){if(e.target.id==='cht'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#chf').requestSubmit()}});
+setInterval(function(){if(state==='ok'&&!document.hidden)loadMsgs()},15000);
 root.addEventListener('change',function(e){var t=e.target;
   if(t.id==='flt'){flt=t.value;draw()}
   if(t.dataset.st){var rf2=t.dataset.st,nv=t.value,all=get('aa_orders',[]);all.forEach(function(o){if(o.ref===rf2)o.status=nv});set('aa_orders',all);if(ORD)ORD.forEach(function(o){if(o.ref===rf2)o.status=nv});draw();if(state==='ok'){apiCall('POST',{action:'status',ref:rf2,status:nv}).then(function(j){if(!j||!j.ok)throw 0;toast('Order status updated.')}).catch(function(){toast('Could not save to the server. Please try again.')})}else toast('Order status updated.')}

@@ -45,14 +45,6 @@ paint();
 withApi(function(){sync();setInterval(function(){if(!document.hidden)sync()},60000)});
 }
 
-/* ---- send this customer's name/email/phone (no password) to the admin sheet, once ---- */
-if(U&&U.role!=='admin'){
-  var sc={};try{sc=JSON.parse(localStorage.getItem('aa_custsent'))||{}}catch(e){}
-  if(!sc[U.email]){withApi(function(){
-    fetch(window.AA_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'customer',cust:{email:U.email,name:U.name,phone:U.phone||'',ts:U.ts||Date.now()}})})
-    .then(function(r){return r.json()}).then(function(j){if(j&&j.ok){sc[U.email]=1;localStorage.setItem('aa_custsent',JSON.stringify(sc))}}).catch(function(){})
-  })}
-}
 var lo=document.getElementById('lo');if(lo)lo.addEventListener('click',function(e){e.preventDefault();localStorage.removeItem('aa_session');location.href='index.html'});
 var b=document.querySelector('.menu-btn'),m=document.getElementById('menu');
 function set(o){document.body.classList.toggle('menu-open',o);b.setAttribute('aria-expanded',o);m.setAttribute('aria-hidden',!o);if(o)m.querySelector('.menu-x').focus();else b.focus()}
@@ -60,4 +52,5 @@ b.addEventListener('click',function(){set(!document.body.classList.contains('men
 document.querySelector('.menu-back').addEventListener('click',function(){set(false)});
 m.querySelector('.menu-x').addEventListener('click',function(){set(false)});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')set(false)});
+var cs=document.createElement('script');cs.src='support.js';document.body.appendChild(cs);
 })();
